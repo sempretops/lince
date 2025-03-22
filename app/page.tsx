@@ -1,5 +1,5 @@
-import { Upload } from "@/components/upload"
-import { Dashboard } from "@/components/dashboard"
+import { Upload } from "@/features/upload/components/upload"
+import { Dashboard } from "@/features/dashboard/components/dashboard"
 
 export default function Home() {
   return (

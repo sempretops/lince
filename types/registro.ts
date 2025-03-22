@@ -1,4 +1,4 @@
-export interface Registro {
+export type Registro = {
   id: number
   dataHora: string
   velocidade: number

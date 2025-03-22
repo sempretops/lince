@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -10,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Search, Eye, AlertTriangle } from "lucide-react"
-import { obterRegistros } from "@/actions/obter-registros"
+import { obterRegistros } from "@/features/dashboard/actions/obter-registros"
 import type { Registro } from "@/types/registro"
 import Image from "next/image"
 
@@ -192,5 +191,4 @@ export function Dashboard() {
       </CardContent>
     </Card>
   )
-}
-
+} 
