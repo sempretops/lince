@@ -1,5 +1,4 @@
 import { createWorker } from 'tesseract.js';
-import { ObjectDetector } from '@cloud-annotations/object-detection';
 
 export interface PlateDetectionResult {
   plate: string | null;
@@ -16,8 +15,11 @@ export async function detectPlate(imageFile: File): Promise<PlateDetectionResult
     const worker = await createWorker({
       langPath: 'https://tessdata.projectnaptha.com/4.0.0',
       gzip: false,
-      lang: 'por'
+      logger: m => console.log(m)
     });
+
+    await worker.loadLanguage('por');
+    await worker.initialize('por');
 
     await worker.setParameters({
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
