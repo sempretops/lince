@@ -1,6 +1,7 @@
 'use server'
 
 import { supabase } from "@/lib/supabase"
+import { detectPlate } from "../services/plate-detection"
 import fs from "fs"
 import path from "path"
 
@@ -28,9 +29,15 @@ export async function processarArquivos(formData: FormData) {
         return nomeArquivo.includes(dataHoraFormatada)
       })
 
-      // Upload da imagem para o Supabase Storage
+      // Upload da imagem para o Supabase Storage e detecção da placa
       let imagemUrl = null
+      let plateInfo = { plate: null, confidence: 0, vehicleType: null }
+
       if (imagemCorrespondente) {
+        // Detectar placa antes do upload
+        plateInfo = await detectPlate(imagemCorrespondente)
+
+        // Upload da imagem
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("imagens-veiculos")
           .upload(`${id}/${imagemCorrespondente.name}`, imagemCorrespondente)
@@ -49,6 +56,9 @@ export async function processarArquivos(formData: FormData) {
         dataHora,
         velocidade: parseInt(velocidade),
         imagemUrl,
+        placa: plateInfo.plate,
+        confiancaPlaca: plateInfo.confidence,
+        tipoVeiculo: plateInfo.vehicleType,
       })
 
       if (insertError) {

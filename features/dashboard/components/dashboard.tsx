@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Search, Eye, AlertTriangle } from "lucide-react"
+import { Search, Eye, AlertTriangle, Car } from "lucide-react"
 import { obterRegistros } from "@/features/dashboard/actions/obter-registros"
 import type { Registro } from "@/types/registro"
 import Image from "next/image"
@@ -44,7 +44,8 @@ export function Dashboard() {
         (registro) =>
           registro.id.toString().includes(searchTerm) ||
           registro.dataHora.includes(searchTerm) ||
-          registro.velocidade.toString().includes(searchTerm),
+          registro.velocidade.toString().includes(searchTerm) ||
+          (registro.placa && registro.placa.includes(searchTerm.toUpperCase())),
       )
       setFilteredRegistros(filtered)
     }
@@ -78,6 +79,16 @@ export function Dashboard() {
     }
   }
 
+  const getConfiancaPlacaStatus = (confianca: number) => {
+    if (confianca > 90) {
+      return <Badge variant="default">Alta</Badge>
+    } else if (confianca > 70) {
+      return <Badge variant="secondary">Média</Badge>
+    } else {
+      return <Badge variant="outline">Baixa</Badge>
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -89,7 +100,7 @@ export function Dashboard() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar por ID, data ou velocidade..."
+            placeholder="Buscar por ID, data, velocidade ou placa..."
             className="pl-8"
             value={searchTerm}
             onChange={handleSearch}
@@ -113,6 +124,7 @@ export function Dashboard() {
                   <TableHead>ID</TableHead>
                   <TableHead>Data e Hora</TableHead>
                   <TableHead>Velocidade</TableHead>
+                  <TableHead>Placa</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -123,6 +135,16 @@ export function Dashboard() {
                     <TableCell className="font-medium">{registro.id}</TableCell>
                     <TableCell>{formatarData(registro.dataHora)}</TableCell>
                     <TableCell>{registro.velocidade} km/h</TableCell>
+                    <TableCell>
+                      {registro.placa ? (
+                        <div className="flex items-center gap-2">
+                          <span>{registro.placa}</span>
+                          {getConfiancaPlacaStatus(registro.confiancaPlaca)}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Não detectada</span>
+                      )}
+                    </TableCell>
                     <TableCell>{getVelocidadeStatus(registro.velocidade)}</TableCell>
                     <TableCell className="text-right">
                       <Dialog>
@@ -157,6 +179,26 @@ export function Dashboard() {
                                       <span className="font-medium">Status:</span>{" "}
                                       {getVelocidadeStatus(selectedRegistro.velocidade)}
                                     </p>
+                                    <p>
+                                      <span className="font-medium">Placa:</span>{" "}
+                                      {selectedRegistro.placa || "Não detectada"}
+                                    </p>
+                                    {selectedRegistro.placa && (
+                                      <>
+                                        <p>
+                                          <span className="font-medium">Confiança da Detecção:</span>{" "}
+                                          {selectedRegistro.confiancaPlaca.toFixed(1)}%{" "}
+                                          {getConfiancaPlacaStatus(selectedRegistro.confiancaPlaca)}
+                                        </p>
+                                        <p>
+                                          <span className="font-medium">Tipo de Veículo:</span>{" "}
+                                          <div className="flex items-center gap-1">
+                                            <Car className="h-4 w-4" />
+                                            {selectedRegistro.tipoVeiculo || "Não identificado"}
+                                          </div>
+                                        </p>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                                 <div>
