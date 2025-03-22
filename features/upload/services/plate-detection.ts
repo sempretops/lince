@@ -9,75 +9,49 @@ export interface PlateDetectionResult {
 
 export async function detectPlate(imageFile: File): Promise<PlateDetectionResult> {
   try {
-    // Carregar o modelo de detecção de veículos
-    const detector = await ObjectDetector.load('/models/vehicle-detection');
-    
-    // Converter o arquivo em uma imagem
-    const img = new Image();
+    // Converter o arquivo em uma URL de dados
     const imageUrl = URL.createObjectURL(imageFile);
-    img.src = imageUrl;
-    await new Promise((resolve) => (img.onload = resolve));
-
-    // Detectar veículos na imagem
-    const predictions = await detector.detect(img);
-    
-    // Encontrar o veículo com maior confiança
-    const vehicle = predictions.sort((a, b) => b.score - a.score)[0];
-    
-    if (!vehicle || vehicle.score < 0.5) {
-      return { plate: null, confidence: 0, vehicleType: null };
-    }
-
-    // Recortar a região da placa (assumindo que está na parte inferior do veículo)
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Não foi possível criar o contexto 2D');
-
-    const plateRegion = {
-      x: vehicle.bbox[0],
-      y: vehicle.bbox[1] + (vehicle.bbox[3] * 0.7), // 70% da altura do veículo
-      width: vehicle.bbox[2],
-      height: vehicle.bbox[3] * 0.3, // 30% da altura do veículo
-    };
-
-    canvas.width = plateRegion.width;
-    canvas.height = plateRegion.height;
-    
-    ctx.drawImage(
-      img,
-      plateRegion.x,
-      plateRegion.y,
-      plateRegion.width,
-      plateRegion.height,
-      0,
-      0,
-      plateRegion.width,
-      plateRegion.height
-    );
 
     // Configurar o Tesseract para reconhecimento de texto
-    const worker = await createWorker('por');
+    const worker = await createWorker({
+      langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+      gzip: false,
+      lang: 'por'
+    });
+
     await worker.setParameters({
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
     });
 
-    // Reconhecer o texto da placa
-    const { data: { text, confidence } } = await worker.recognize(canvas);
-    await worker.terminate();
+    // Realizar OCR na imagem
+    const { data: { text } } = await worker.recognize(imageUrl);
 
-    // Limpar URL do objeto
+    // Limpar a URL do objeto
     URL.revokeObjectURL(imageUrl);
 
-    // Formatar e validar a placa
-    const plate = formatPlate(text);
-    
+    // Processar o texto reconhecido para encontrar a placa
+    const placaMatch = text.match(/[A-Z]{3}[0-9][0-9A-Z][0-9]{2}/);
+    if (!placaMatch) {
+      return { plate: null, confidence: 0, vehicleType: null };
+    }
+
+    const placa = placaMatch[0];
+    const confidence = 0.8; // Valor fixo por enquanto, pode ser ajustado baseado na qualidade do OCR
+
+    // Determinar o tipo de veículo baseado em características da imagem
+    // Por enquanto, retornamos um valor fixo
+    const vehicleType = "Automóvel";
+
+    // Terminar o worker
+    await worker.terminate();
+
     return {
-      plate: plate,
-      confidence: confidence,
-      vehicleType: vehicle.class,
+      plate: placa,
+      confidence,
+      vehicleType,
     };
   } catch (error) {
-    console.error('Erro ao detectar placa:', error);
+    console.error("Erro ao detectar placa:", error);
     return { plate: null, confidence: 0, vehicleType: null };
   }
 }
