@@ -17,7 +17,7 @@ function formatDataHoraForMatch(date: Date): string {
   return date.toISOString().replace(/[^0-9]/g, "").slice(0, 14) // YYYYMMDDHHmmss
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB em bytes
+const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB em bytes
 
 export async function processarArquivos(formData: FormData) {
   try {
@@ -33,7 +33,7 @@ export async function processarArquivos(formData: FormData) {
       if (file.size > MAX_FILE_SIZE) {
         return { 
           success: false, 
-          error: `Arquivo ${file.name} excede o tamanho máximo permitido de 10MB` 
+          error: `Arquivo ${file.name} excede o tamanho máximo permitido de 50MB` 
         }
       }
     }
@@ -80,16 +80,19 @@ export async function processarArquivos(formData: FormData) {
           try {
             // Detectar placa antes do upload
             plateInfo = await detectPlate(imagemCorrespondente)
-          } catch (error) {
+          } catch (error: any) {
             console.error("Erro ao detectar placa:", error)
-            erros.push(`Erro ao detectar placa na imagem ${imagemCorrespondente.name}: ${error.message}`)
+            erros.push(`Erro ao detectar placa na imagem ${imagemCorrespondente.name}: ${error.message || 'Erro desconhecido'}`)
           }
 
           try {
             // Upload da imagem
             const { data: uploadData, error: uploadError } = await supabase.storage
               .from("imagens-veiculos")
-              .upload(`${dataFormatada}/${imagemCorrespondente.name}`, imagemCorrespondente)
+              .upload(`${dataFormatada}/${imagemCorrespondente.name}`, imagemCorrespondente, {
+                cacheControl: '3600',
+                upsert: false
+              })
 
             if (uploadError) {
               console.error("Erro ao fazer upload da imagem:", uploadError)
@@ -98,9 +101,9 @@ export async function processarArquivos(formData: FormData) {
               const { data: urlData } = supabase.storage.from("imagens-veiculos").getPublicUrl(uploadData.path)
               imagemUrl = urlData.publicUrl
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error("Erro ao fazer upload da imagem:", error)
-            erros.push(`Erro ao fazer upload da imagem ${imagemCorrespondente.name}: ${error.message}`)
+            erros.push(`Erro ao fazer upload da imagem ${imagemCorrespondente.name}: ${error.message || 'Erro desconhecido'}`)
           }
         }
 
@@ -121,9 +124,9 @@ export async function processarArquivos(formData: FormData) {
         }
 
         registrosProcessados++
-      } catch (error) {
+      } catch (error: any) {
         console.error("Erro ao processar linha:", error)
-        erros.push(`Erro ao processar linha: ${error.message}`)
+        erros.push(`Erro ao processar linha: ${error.message || 'Erro desconhecido'}`)
       }
     }
 
@@ -132,11 +135,11 @@ export async function processarArquivos(formData: FormData) {
       registrosProcessados,
       erros: erros.length > 0 ? erros : undefined
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro ao processar arquivos:", error)
     return { 
       success: false, 
-      error: `Erro ao processar arquivos: ${error.message}` 
+      error: `Erro ao processar arquivos: ${error.message || 'Erro desconhecido'}` 
     }
   }
 } 
