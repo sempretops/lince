@@ -1,5 +1,5 @@
 export type Registro = {
-  id: number
+  id?: number // ID automático gerado pelo Supabase
   dataHora: string
   velocidade: number
   imagemUrl: string | null

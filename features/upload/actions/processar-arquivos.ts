@@ -2,8 +2,20 @@
 
 import { supabase } from "@/lib/supabase"
 import { detectPlate } from "../services/plate-detection"
-import fs from "fs"
-import path from "path"
+
+function parseDataHora(dataHora: string): Date | null {
+  try {
+    // Assumindo formato "YYYY-MM-DD HH:mm:ss"
+    return new Date(dataHora)
+  } catch (error) {
+    console.error("Erro ao converter data/hora:", error)
+    return null
+  }
+}
+
+function formatDataHoraForMatch(date: Date): string {
+  return date.toISOString().replace(/[^0-9]/g, "").slice(0, 14) // YYYYMMDDHHmmss
+}
 
 export async function processarArquivos(formData: FormData) {
   try {
@@ -19,28 +31,42 @@ export async function processarArquivos(formData: FormData) {
     for (const linha of linhas) {
       if (!linha.trim()) continue
 
-      const [dataHora, velocidade, id] = linha.split("\t")
-      if (!dataHora || !velocidade || !id) continue
+      // Agora esperamos apenas data/hora e velocidade no CSV
+      const [dataHora, velocidade] = linha.split("\t")
+      if (!dataHora || !velocidade) continue
+
+      const dataParsed = parseDataHora(dataHora)
+      if (!dataParsed) {
+        console.error("Data/hora inválida:", dataHora)
+        continue
+      }
+
+      const dataFormatada = formatDataHoraForMatch(dataParsed)
 
       // Encontrar a imagem correspondente
-      const dataHoraFormatada = dataHora.replace(/[^0-9]/g, "")
       const imagemCorrespondente = imageFiles.find((file) => {
-        const nomeArquivo = file.name.replace(/[^0-9]/g, "")
-        return nomeArquivo.includes(dataHoraFormatada)
+        // Remove extensão e caracteres especiais do nome do arquivo
+        const nomeArquivo = file.name.split(".")[0].replace(/[^0-9]/g, "")
+        // Compara os timestamps (considerando segundos)
+        return nomeArquivo === dataFormatada
       })
 
-      // Upload da imagem para o Supabase Storage e detecção da placa
+      // Upload da imagem para o Supabase Storage
       let imagemUrl = null
-      let plateInfo = { plate: null, confidence: 0, vehicleType: null }
+      let plateInfo = { plate: null as string | null, confidence: 0, vehicleType: null as string | null }
 
       if (imagemCorrespondente) {
         // Detectar placa antes do upload
-        plateInfo = await detectPlate(imagemCorrespondente)
+        try {
+          plateInfo = await detectPlate(imagemCorrespondente)
+        } catch (error) {
+          console.error("Erro ao detectar placa:", error)
+        }
 
         // Upload da imagem
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("imagens-veiculos")
-          .upload(`${id}/${imagemCorrespondente.name}`, imagemCorrespondente)
+          .upload(`${dataFormatada}/${imagemCorrespondente.name}`, imagemCorrespondente)
 
         if (uploadError) {
           console.error("Erro ao fazer upload da imagem:", uploadError)
@@ -52,8 +78,7 @@ export async function processarArquivos(formData: FormData) {
 
       // Inserir registro no banco de dados
       const { error: insertError } = await supabase.from("registros").insert({
-        id: parseInt(id),
-        dataHora,
+        dataHora: dataParsed.toISOString(),
         velocidade: parseInt(velocidade),
         imagemUrl,
         placa: plateInfo.plate,

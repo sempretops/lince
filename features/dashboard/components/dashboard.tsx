@@ -42,7 +42,6 @@ export function Dashboard() {
     } else {
       const filtered = registros.filter(
         (registro) =>
-          registro.id.toString().includes(searchTerm) ||
           registro.dataHora.includes(searchTerm) ||
           registro.velocidade.toString().includes(searchTerm) ||
           (registro.placa && registro.placa.includes(searchTerm.toUpperCase())),
@@ -100,7 +99,7 @@ export function Dashboard() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar por ID, data, velocidade ou placa..."
+            placeholder="Buscar por data/hora, velocidade ou placa..."
             className="pl-8"
             value={searchTerm}
             onChange={handleSearch}
@@ -121,7 +120,6 @@ export function Dashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
                   <TableHead>Data e Hora</TableHead>
                   <TableHead>Velocidade</TableHead>
                   <TableHead>Placa</TableHead>
@@ -131,8 +129,7 @@ export function Dashboard() {
               </TableHeader>
               <TableBody>
                 {filteredRegistros.map((registro) => (
-                  <TableRow key={registro.id}>
-                    <TableCell className="font-medium">{registro.id}</TableCell>
+                  <TableRow key={registro.dataHora}>
                     <TableCell>{formatarData(registro.dataHora)}</TableCell>
                     <TableCell>{registro.velocidade} km/h</TableCell>
                     <TableCell>
@@ -165,15 +162,12 @@ export function Dashboard() {
                                   <h3 className="font-semibold mb-2">Informações</h3>
                                   <div className="space-y-2">
                                     <p>
-                                      <span className="font-medium">ID:</span> {selectedRegistro.id}
-                                    </p>
-                                    <p>
                                       <span className="font-medium">Data e Hora:</span>{" "}
                                       {formatarData(selectedRegistro.dataHora)}
                                     </p>
                                     <p>
-                                      <span className="font-medium">Velocidade:</span> {selectedRegistro.velocidade}{" "}
-                                      km/h
+                                      <span className="font-medium">Velocidade:</span>{" "}
+                                      {selectedRegistro.velocidade} km/h
                                     </p>
                                     <p>
                                       <span className="font-medium">Status:</span>{" "}
@@ -207,7 +201,7 @@ export function Dashboard() {
                                     <div className="relative h-48 w-full border rounded-md overflow-hidden">
                                       <Image
                                         src={selectedRegistro.imagemUrl || "/placeholder.svg"}
-                                        alt={`Veículo ID ${selectedRegistro.id}`}
+                                        alt={`Veículo ${formatarData(selectedRegistro.dataHora)}`}
                                         fill
                                         className="object-cover"
                                       />
