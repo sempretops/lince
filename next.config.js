@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    serverActions: {
-      bodySizeLimit: '50mb',
-    },
+    serverActions: true,
   },
   webpack: (config) => {
     config.externals.push({
